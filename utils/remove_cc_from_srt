@@ -1,0 +1,39 @@
+import re
+from google.cloud import storage
+
+def remove_cc_from_srt(data, context):
+    # Initialize Storage Client
+    storage_client = storage.Client()
+    bucket_name = "cc-removal-bucket"  # Replace with your bucket name
+    bucket = storage_client.bucket(bucket_name)
+
+    # File info
+    file_name = data["name"]
+    if not file_name.endswith(".srt"):
+        print(f"Skipping non-SRT file: {file_name}")
+        return
+
+    # Download the SRT file
+    blob = bucket.blob(file_name)
+    srt_content = blob.download_as_text()
+
+    # CC removal logic
+    cleaned_content = []
+    cc_pattern = re.compile(r"\[.*?\]|\(.*?\)|\".*?\"")  # CC pattern for removing subtitles/annotations
+    for line in srt_content.split("\n"):
+        cleaned_line = re.sub(cc_pattern, "", line)  # Remove CC pattern
+        cleaned_content.append(cleaned_line)
+
+    # Check if anything was removed (if cleaned_content is different from srt_content)
+    if srt_content != "\n".join(cleaned_content):
+        print(f"CCs were removed from the file: {file_name}")
+    else:
+        print(f"No CCs found in the file: {file_name}")
+    
+    # Save cleaned SRT to 'processed/' folder
+    cleaned_file_name = f"processed/{file_name.split('/')[-1]}"
+    cleaned_blob = bucket.blob(cleaned_file_name)
+    cleaned_blob.upload_from_string("\n".join(cleaned_content))
+    print(f"Processed file saved: {cleaned_file_name}")
+
+    return cleaned_file_name
