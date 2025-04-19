@@ -1,0 +1,7 @@
+<h2>❌ QC Failed: Remaining Profanities</h2>
+<ul>
+  {% for r in remaining %}
+    <li>{{ r.category }}: "{{ r.word }}" in "{{ r.text }}"</li>
+  {% endfor %}
+</ul>
+<a href="/profanity">Go Back</a>
