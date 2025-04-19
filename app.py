@@ -1,4 +1,5 @@
 import os
+import re
 from flask import Flask, render_template, request, send_from_directory
 from utils.excel_to_srt import convert_to_srt
 from utils.word_renamer import rename_word_file
@@ -13,9 +14,46 @@ app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# ===== CC Removal =====
+@app.route('/remove_cc', methods=['GET', 'POST'])
+def remove_cc_route():
+    if request.method == 'POST':
+        file = request.files['srtfile']
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filepath)
+
+        try:
+            cleaned_file = remove_cc_from_srt(filepath)
+            return send_from_directory(app.config['OUTPUT_FOLDER'], cleaned_file, as_attachment=True)
+        except Exception as e:
+            return str(e), 500
+
+    return render_template('remove_cc.html')
+
+
+def remove_cc_from_srt(file_path):
+    # Open the SRT file
+    with open(file_path, 'r', encoding="utf-8") as f:
+        srt_content = f.readlines()
+
+    # Define the CC pattern (this may vary depending on your SRT files)
+    cc_pattern = re.compile(r"\[.*?\]|\(.*?\)|\".*?\"")  # Text inside [], (), or ""
+
+    # Remove CC and create cleaned content
+    cleaned_content = []
+    for line in srt_content:
+        cleaned_line = re.sub(cc_pattern, "", line)
+        cleaned_content.append(cleaned_line)
+
+    # Save cleaned SRT to the output folder
+    cleaned_file_name = f"cleaned_{os.path.basename(file_path)}"
+    output_path = os.path.join('outputs', cleaned_file_name)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.writelines(cleaned_content)
+
+    return cleaned_file_name
+
 
 # ===== Excel to SRT =====
 @app.route('/convert', methods=['GET', 'POST'])
