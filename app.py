@@ -23,21 +23,22 @@ class Config:
     OUTPUT_FOLDER = 'outputs'
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB limit
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key-here'
-    # For production, configure Redis URL
-    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+    USE_REDIS = False  # Explicitly disable Redis
 
 # Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Security and Rate Limiting
-csrf = CSRFProtect(app)
+# Configure rate limiter without Redis
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    storage_uri=app.config['REDIS_URL'],
     default_limits=["200 per day", "50 per hour"]
 )
+
+# Suppress the in-memory storage warning
+import warnings
+warnings.filterwarnings("ignore", message="Using the in-memory storage")
 
 # Ensure upload directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
