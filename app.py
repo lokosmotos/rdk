@@ -45,7 +45,7 @@ app.logger.addHandler(handler)
 def cleanup_old_files():
     """Remove files older than 24 hours"""
     now = datetime.now()
-    for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER']:
+    for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER']]:
         for filename in os.listdir(folder):
             filepath = os.path.join(folder, filename)
             if os.path.isfile(filepath):
