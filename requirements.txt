@@ -13,3 +13,10 @@ flask-limiter==2.8.1
 python-docx==0.8.11
 openpyxl==3.1.2
 pandas==2.0.3
+flask==2.2.5
+werkzeug==2.2.3
+flask-wtf==1.1.1
+flask-limiter==2.8.1
+python-docx==0.8.11
+openpyxl==3.1.2
+pandas==2.0.3
