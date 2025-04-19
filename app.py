@@ -4,13 +4,13 @@ import logging
 import atexit
 from datetime import datetime, timedelta
 from logging.handlers import RotatingFileHandler
-from flask import Flask, render_template, request, send_from_directory
+from flask import Flask, render_template, request, send_from_directory, abort
 from werkzeug.utils import secure_filename
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-# Import your custom utilities
+# Import custom utilities
 from utils.excel_to_srt import convert_to_srt
 from utils.word_renamer import rename_word_file
 from utils.profanity_checker import check_profanity, clean_profanity, final_qc
@@ -20,7 +20,8 @@ class Config:
     UPLOAD_FOLDER = 'uploads'
     OUTPUT_FOLDER = 'outputs'
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB limit
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secure-key-here'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-very-secret-key-123!'
+    USE_REDIS = False
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -43,7 +44,9 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
 # Configure logging
-log_formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
+log_formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3)
 handler.setFormatter(log_formatter)
 handler.setLevel(logging.INFO)
@@ -52,6 +55,7 @@ app.logger.setLevel(logging.INFO)
 
 # File cleanup at exit
 def cleanup_old_files():
+    """Remove files older than 24 hours"""
     now = datetime.now()
     for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER']]:
         if not os.path.exists(folder):
@@ -69,7 +73,6 @@ def cleanup_old_files():
 
 atexit.register(cleanup_old_files)
 
-# Helper functions
 def allowed_file(filename, extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensions
 
@@ -92,29 +95,129 @@ def remove_cc_route():
     if request.method == 'POST':
         if 'srtfile' not in request.files:
             return "No file selected", 400
+            
         file = request.files['srtfile']
         if file.filename == '':
             return "No file selected", 400
+            
         if not allowed_file(file.filename, ['srt']):
             return "Invalid file type", 400
+            
         if not validate_srt_file(file.stream):
             return "Invalid SRT file", 400
 
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
-        app.logger.info(f"Uploaded: {filename}")
-
+        
         try:
             cleaned_file = remove_cc_from_srt(filepath)
-            return send_from_directory(app.config['OUTPUT_FOLDER'], cleaned_file, as_attachment=True)
+            return send_from_directory(
+                app.config['OUTPUT_FOLDER'], 
+                cleaned_file, 
+                as_attachment=True
+            )
         except Exception as e:
             app.logger.error(f"Error: {str(e)}")
             return str(e), 500
 
     return render_template('remove_cc.html')
 
-# ... [Include all your other routes here following the same pattern] ...
+def remove_cc_from_srt(file_path):
+    # ... (keep your existing implementation) ...
+
+@app.route('/convert', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
+def convert_route():
+    if request.method == 'POST':
+        if 'excel' not in request.files:
+            return "No file selected", 400
+            
+        file = request.files['excel']
+        if file.filename == '':
+            return "No file selected", 400
+            
+        if not allowed_file(file.filename, ['xlsx', 'xls']):
+            return "Invalid file type", 400
+
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        try:
+            srt_path = convert_to_srt(filepath, app.config['OUTPUT_FOLDER'])
+            return send_from_directory(
+                app.config['OUTPUT_FOLDER'], 
+                os.path.basename(srt_path), 
+                as_attachment=True
+            )
+        except Exception as e:
+            app.logger.error(f"Conversion error: {str(e)}")
+            return str(e), 500
+
+    return render_template('convert.html')
+
+@app.route('/rename', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
+def rename():
+    if request.method == 'POST':
+        if 'wordfile' not in request.files:
+            return "No file selected", 400
+            
+        file = request.files['wordfile']
+        if file.filename == '':
+            return "No file selected", 400
+            
+        if not allowed_file(file.filename, ['docx', 'doc']):
+            return "Invalid file type", 400
+
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        try:
+            new_name = rename_word_file(filepath)
+            return f"Renamed file: {new_name}"
+        except Exception as e:
+            app.logger.error(f"Renaming error: {str(e)}")
+            return str(e), 500
+
+    return render_template('rename.html')
+
+@app.route('/profanity', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
+def profanity():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return "No file selected", 400
+            
+        file = request.files['file']
+        if file.filename == '':
+            return "No file selected", 400
+            
+        if not allowed_file(file.filename, ['srt', 'xlsx', 'xls', 'docx', 'txt']):
+            return "Invalid file type", 400
+
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        try:
+            scan_result = check_profanity(filepath)
+            if not scan_result["results"]:
+                return "✅ No profanities detected."
+                
+            return render_template('profanity_review.html', 
+                               results=scan_result["results"],
+                               filetype=scan_result["filetype"], 
+                               filename=filename)
+        except Exception as e:
+            app.logger.error(f"Profanity check error: {str(e)}")
+            return str(e), 500
+
+    return render_template('profanity.html')
+
+# ... (keep your existing profanity_clean route) ...
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
