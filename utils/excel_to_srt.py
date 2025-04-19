@@ -1,28 +1,31 @@
 import pandas as pd
 import os
+import langdetect
 
-def convert_to_srt(file_path, language, output_folder='outputs'):
-    language_map = {
-        'ov': 'OV DIALOGUES',
-        'spanish': 'SPANISH SUBTITLES',
-        'english': 'ENGLISH SUBTITLES'
-    }
+def convert_to_srt(filepath, output_folder):
+    df = pd.read_excel(filepath)
 
-    df = pd.read_excel(file_path)
-    col = language_map.get(language)
+    if df.shape[1] < 2:
+        raise ValueError("Excel must have at least 2 columns: start time and text.")
 
-    if col not in df.columns:
-        raise ValueError(f"Column '{col}' not found in Excel.")
+    # Detect language from first few lines
+    sample_text = ' '.join(df.iloc[:5, 1].astype(str))
+    try:
+        language = langdetect.detect(sample_text)
+    except:
+        language = 'unknown'
 
-    lines = df[col].fillna('').tolist()
-    srt_path = os.path.join(output_folder, f'{language}.srt')
+    srt_lines = []
+    for i, row in df.iterrows():
+        start = row[0]
+        text = row[1]
+        end = df.iloc[i+1, 0] if i + 1 < len(df) else "00:00:10,000"  # default end time if missing
+        srt_lines.append(f"{i+1}\n{start} --> {end}\n{text}\n")
 
-    with open(srt_path, 'w', encoding='utf-8') as f:
-        for i, line in enumerate(lines, start=1):
-            start_sec = i * 3
-            end_sec = start_sec + 2
-            f.write(f"{i}\n")
-            f.write(f"00:00:{start_sec:02},000 --> 00:00:{end_sec:02},000\n")
-            f.write(f"{line.strip()}\n\n")
+    output_filename = os.path.splitext(os.path.basename(filepath))[0] + f"_{language}.srt"
+    output_path = os.path.join(output_folder, output_filename)
 
-    return srt_path
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write('\n'.join(srt_lines))
+
+    return output_path
