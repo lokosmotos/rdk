@@ -1,40 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3><i class="bi bi-subtitles"></i> Remove Closed Captions</h3>
-                </div>
-                <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        
-                        <div class="mb-3">
-                            <label for="srtFile" class="form-label">Select SRT File:</label>
-                            <input class="form-control" type="file" id="srtFile" name="srtfile" accept=".srt" required>
-                            <div class="form-text">Maximum file size: 16MB</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="preserveNumbers" name="preserve_numbers" checked>
-                                <label class="form-check-label" for="preserveNumbers">
-                                    Preserve subtitle numbering
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-gear"></i> Process File
-                        </button>
-                    </form>
-                </div>
-                <div class="card-footer text-muted small">
-                    <p class="mb-1">Removes: [brackets], (parentheses), {braces}, ♪music♪, and other CC markers</p>
-                    <p class="mb-0">Processed files are automatically deleted after 24 hours</p>
-                </div>
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4>Remove Closed Captions</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {{ csrf_token() }}
+                    <div class="mb-3">
+                        <label class="form-label">Select SRT File:</label>
+                        <input class="form-control" type="file" name="srtfile" accept=".srt" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Process File</button>
+                </form>
             </div>
         </div>
     </div>
