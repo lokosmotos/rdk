@@ -1,19 +1,20 @@
-@app.route('/convert', methods=['GET', 'POST'])
-def convert_route():
-    if request.method == 'POST':
-        uploaded_file = request.files['excel']
+import pandas as pd
+from langdetect import detect
 
-        if not uploaded_file.filename.endswith(('.xlsx', '.xls')):
-            return "Invalid file type. Please upload an Excel file.", 400
-
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], uploaded_file.filename)
-        uploaded_file.save(filepath)
-
-        try:
-            srt_path = convert_to_srt(filepath, output_folder=app.config['OUTPUT_FOLDER'])
-        except Exception as e:
-            return str(e), 500
-
-        return send_from_directory(app.config['OUTPUT_FOLDER'], os.path.basename(srt_path), as_attachment=True)
-
-    return render_template('convert.html')
+def convert_to_srt(excel_path, output_folder):
+    try:
+        df = pd.read_excel(excel_path)
+        srt_content = []
+        
+        for index, row in df.iterrows():
+            srt_content.append(f"{index+1}\n")
+            srt_content.append(f"{row['start_time']} --> {row['end_time']}\n")
+            srt_content.append(f"{row['text']}\n\n")
+        
+        output_path = f"{output_folder}/output.srt"
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.writelines(srt_content)
+            
+        return output_path
+    except Exception as e:
+        raise Exception(f"Conversion error: {str(e)}")
