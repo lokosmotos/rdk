@@ -8,7 +8,7 @@
             </div>
             <div class="card-body">
                 <form method="POST" enctype="multipart/form-data">
-                    {{ csrf_token() }}
+                    {{ csrf_token()|safe }}
                     <div class="mb-3">
                         <label class="form-label">Select Word Document:</label>
                         <input class="form-control" type="file" name="wordfile" accept=".docx,.doc" required>
