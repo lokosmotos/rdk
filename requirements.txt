@@ -5,3 +5,4 @@ gunicorn
 python-docx
 xlrd
 langdetect
+google-cloud-storage
