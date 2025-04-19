@@ -1,51 +1,13 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Multi-Tool App</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 2rem;
-      background: #f4f4f4;
-    }
-    h1 {
-      text-align: center;
-    }
-    .tools {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      max-width: 400px;
-      margin: auto;
-    }
-    .tools a button {
-      width: 100%;
-      padding: 1rem;
-      background: #007BFF;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-    .tools a button:hover {
-      background: #0056b3;
-    }
-  </style>
-</head>
-<body>
-  <h1>Multi-Tool Dashboard</h1>
-  <div class="tools">
-    <a href="/profanity"><button>Profanity Checker</button></a>
-    <a href="/rename"><button>Word File Renamer</button></a>
-    <form action="/convert" method="post" enctype="multipart/form-data">
-      <input type="file" name="excel" required><br><br>
-      <select name="language" required>
-        <option value="en">English</option>
-        <option value="ms">Malay</option>
-      </select><br><br>
-      <button type="submit">Convert Excel to SRT</button>
-    </form>
-  </div>
-</body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-body text-center">
+                <h2>Welcome to SRT Tools</h2>
+                <p class="lead">Choose a tool from the navigation menu above</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
