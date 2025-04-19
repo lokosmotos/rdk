@@ -4,3 +4,4 @@ openpyxl
 gunicorn
 python-docx
 xlrd
+langdetect
