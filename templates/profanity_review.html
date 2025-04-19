@@ -1,0 +1,12 @@
+<form method="POST" action="/profanity/clean">
+  <input type="hidden" name="filename" value="{{ filename }}">
+  <h2>Profanities Found</h2>
+  {% for r in results %}
+    <div>
+      <p><strong>{{ r.category }}</strong>: "{{ r.word }}" in "{{ r.text }}"</p>
+      <label>Replace with: <input type="text" name="replace_{{ r.word }}" value="***"></label>
+    </div>
+    <hr>
+  {% endfor %}
+  <button type="submit">Clean & Export</button>
+</form>
