@@ -1,1 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Profanity Check Results</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 8px 12px; border: 1px solid #ccc; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .category-Mild { background-color: #ffffcc; }
+        .category-Moderate { background-color: #ffd699; }
+        .category-Strong { background-color: #ff9999; }
+        .category-Religious { background-color: #d1b3ff; }
+    </style>
+</head>
+<body>
+
+<h2>Detected Profanities</h2>
+
+<form method="post" action="{{ url_for('profanity_clean') }}">
+    {{ csrf_token() }}
+    <input type="hidden" name="filename" value="{{ filename }}">
+
+    <table>
+        <thead>
+            <tr>
+                <th>Line Number</th>
+                <th>Original Text</th>
+                <th>Profanity</th>
+                <th>Category</th>
+                <th>Action (Rename / Censor)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in results %}
+                <tr class="category-{{ item.category }}">
+                    <td>{{ item.line }}</td>
+                    <td>{{ item.text }}</td>
+                    <td>{{ item.word }}</td>
+                    <td>{{ item.category }}</td>
+                    <td>
+                        <input type="hidden" name="original_word[]" value="{{ item.word }}">
+                        <input type="text" name="replacement[]" placeholder="e.g. **** or alternative">
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <br>
+    <button type="submit">Clean & Export File</button>
+</form>
+
+</body>
+</html>
 
